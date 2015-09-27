@@ -1,5 +1,4 @@
 # Simulation Settings
-import os
 
 networks = ["Landgate"]
 t_days = [1]
@@ -11,9 +10,11 @@ pv_values["penetration"] = [0]
 pv_values["clearness"] = [1]
 pv_values["pv_mode"] = "clear"  # clear for clearness, iter for iterations
 
+import os
 #change the directory where the input files are by commenting the os.path.dir part and adding the directory manually
 #below
-directory = os.path.dirname(os.path.realpath(__file__))
+
+directory = os.path.abspath(os.path.join(os.path.join(os.path.dirname( __file__ ), '..'), '..', 'Input'))
 #directory = 'C:\\Users\\Kyriacos\\Desktop\\Project\\something'
 
 
