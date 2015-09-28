@@ -84,7 +84,7 @@ def extract_customer_buses(network, no_feeders, directory):
     for i in range(no_feeders):
         feeders = []
         with open("%s\\Networks\\%s\\%s\\Loads.txt" % (
-                directory,network, (starting_feeder + i))) as f:
+                directory, network, (starting_feeder + i))) as f:
             for line in f:
                 feeders.append(line.split(" ")[3])
 
