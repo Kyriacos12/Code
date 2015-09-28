@@ -4,11 +4,11 @@ import AssignProfiles
 
 
 def init(engine, directory):
-
+    '''
     filename = '{0}\\Networks\\Landgate\\Loadshapes\\'.format(str(directory))
     engine.text.command = 'set datapath=' + filename
     engine.text.command = 'redirect Loadshapes.txt'
-
+    '''
     filename = '{0}\\Networks\\Landgate\\63057169\\'.format(str(directory))
     engine.text.command = "set datapath=" + filename
     engine.text.command = 'redirect Master.txt'
