@@ -1,10 +1,16 @@
 
-% 
-% currentpath = cd('..')
-% parentpath = pwd()
-% parrr = pwd()
-lel = fullfile(cd,'..\..')
+function [] = something()
+
+    disp('lel');
+    lel = str2func('whate');
+    lel()
 
 
+function [] = whate()
 
 
+disp('lel2');
+%lel();
+end
+
+end

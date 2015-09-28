@@ -4,6 +4,8 @@ t_day = 1;
 t_month = 1;
 network = 'Landgate';
 
+iteration = 10; %to be changed
+
 %% Obtain settings
 [no_customers, no_feeders, customers_per_feeder, mydir] = setup(network);
 
@@ -30,9 +32,13 @@ DSSText.Command = ['Set Mode = daily stepsize = 1m number = 1'];
 
 %% Setup the Network
 
-net_function = str2func(network);
-net_function(DSSText, mydir, init);
+net_function = str2func(network);               
+net_function(DSSText, mydir, iteration, 'init');
+
 
 assign_house_profiles(mydir, DSSText, t_month, t_day, network, no_feeders, ...
      customers_per_feeder);
+ 
+ 
+net_function(DSSText, mydir, iteration, 'export_monitors');
 
