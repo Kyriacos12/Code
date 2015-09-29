@@ -1,44 +1,45 @@
-tic; clear; clc; close all
+%tic; clear; clc; close all
+global d;
+d = containers.Map;
 %% User Input
-t_day = 1;
-t_month = 1;
-network = 'Landgate';
-
-iteration = 10; %to be changed
+d('t_day') = 1;
+d('month') = 1;
+d('network') = 'Landgate';
 
 %% Obtain settings
-[no_customers, no_feeders, customers_per_feeder, mydir] = setup(network);
-
+setup();
 %% ********************************************************************************************************
 %                                       Initialize OpenDSS
 %*********************************************************************************************************
-[DSSStartOK, DSSObj, DSSText] = dss_startup(mydir);
+DSSStartOK = dss_startup();
 if ~DSSStartOK
     disp('Unable to start the OpenDSS Engine')
     return
-end    
-DSSText = DSSObj.Text;                                                      %   Set up the Text
+end
+DSSObj = d('DSSObj');
+DSSText = DSSObj.Text;%   Set up the Text
+d('DSSText') = DSSText;
 DSSText.Command = 'clear';                                                  %   Clear text command
 DSSText.Command = ...
-    sprintf('Compile (%s\\Input\\Networks\\%s\\Main.dss)',mydir,network);
+    sprintf('Compile (%s\\Input\\Networks\\%s\\Main.dss)',...
+    d('mydir'),d('network'));
 DSSCircuit = DSSObj.ActiveCircuit;                                          %   Set up the Circuit
 DSSSolution = DSSCircuit.Solution;                                          %   Set up the Solution
 ControlQueue = DSSCircuit.CtrlQueue;                                        %   Set up the Control
-DSSObj.AllowForms = 0;                                                      %   no "solution progress" window
+DSSObj.AllowForms = 1;                                                      %   no "solution progress" window
 
-DSSText.Command = 'Set ControlMode = time';
+DSSText.Command = 'Set ControlMode=time';
 DSSText.Command = 'Reset';                                                  %    resetting all energy meters and monitors
-DSSText.Command = ['Set Mode = daily stepsize = 1m number = 1'];
+DSSText.Command = ['Set Mode=daily stepsize=1m number=1'];
 
 %% Setup the Network
+net_function = str2func(d('network'));               
+net_function('init');
 
-net_function = str2func(network);               
-net_function(DSSText, mydir, iteration, 'init');
+assign_house_profiles();
 
-
-assign_house_profiles(mydir, DSSText, t_month, t_day, network, no_feeders, ...
-     customers_per_feeder);
- 
- 
-net_function(DSSText, mydir, iteration, 'export_monitors');
+for i = 1:1440
+    DSSSolution.Solve;
+end
+net_function('export_monitors');
 

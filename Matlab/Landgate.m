@@ -1,17 +1,18 @@
-function [] = Landgate(DSSText, directory, iteration, caller)
-
+function [] = Landgate(caller)
+    global d;
+    DSSText = d('DSSText');
+    iteration = 5;
     p = eval(['@' caller]);  
     p();     
-
+    
     function [] = init()
         %% Redirect the Master Files from all Feeders
-        starting_feeder = 63057169;
         for i = 1:6
 
-            current_feeder = starting_feeder + i - 1;
-            filename = sprintf('%s\\Input\\Networks\\Landgate\\%u',...
-                directory, current_feeder);
-            DSSText.Command = sprintf('set datapath=%s', filename);
+            current_feeder = d('starting_feeder') + i - 1;
+            filename = sprintf('%s\\Input\\Networks\\Landgate\\%u\\',...
+                d('mydir'), current_feeder);
+            DSSText.Command = sprintf('set datapath=(%s)', filename);
             DSSText.Command = 'redirect Master.txt';
 
         end
@@ -33,16 +34,21 @@ function [] = Landgate(DSSText, directory, iteration, caller)
 
     function [] = export_monitors()
         %% Export of Monitors
-        direc = strcat(directory, '\Input\Output\Landgate\');
-        direc = strcat(direc, num2str(iteration));
-        if exist(direc, 'dir') ~= 7
-            mkdir(direc);
+        direct = strcat(d('mydir'), '\Input\Output\Landgate\');
+        direc = strcat(direct, num2str(0));
+        val = exist(direc, 'dir');
+        i = 0;
+        while val == 7
+            i = i+1;
+            direc = strcat(direct, num2str(i));
+            val = exist(direc, 'dir');
         end
+        mkdir(direc);
         DSSText.Command = sprintf('set datapath=%s',direc);
         DSSText.Command = 'Export Monitors PQtrans';
         for i = 1:6
             DSSText.Command = sprintf('Export Monitors VI%u', i);
-            DSSText.Command = sprintf('Export Monitors VIs%u', i);
+            DSSText.Command = sprintf('Export Monitors VI%us', i);
         end
     end
 end
