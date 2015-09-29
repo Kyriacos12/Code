@@ -1,4 +1,4 @@
-function [] = setup()
+function setup
 
     %Obtain Settings
     %directory = fullfile(cd,'..\..'); %PC at Uni

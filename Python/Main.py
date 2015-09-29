@@ -3,7 +3,7 @@
 networks = ["Landgate"]
 t_days = [1]
 months = [1]
-no_of_iterations = 6
+no_of_iterations = 20
 
 pv_values = {}
 pv_values["penetration"] = [0]
@@ -53,8 +53,8 @@ if __name__ == '__main__':
 
     # Plotting Starts here
     # plot(data[0])
-    monte_carlo_same_network(no_of_iterations, data[0])
+    #monte_carlo_same_network(no_of_iterations, data[0])
 
     # End of Simulation
     print("--- %s seconds ---" % (time.time() - start_time))
-    show()
+    #show()

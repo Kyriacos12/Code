@@ -1,4 +1,4 @@
-function [] = Landgate(caller)
+function Landgate(caller)
     global d;
     DSSText = d('DSSText');
     iteration = 5;

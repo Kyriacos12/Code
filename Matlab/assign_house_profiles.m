@@ -1,4 +1,4 @@
-function [] = assign_house_profiles()
+function assign_house_profiles
     global d;
     DSSText = d('DSSText');
     customers_per_feeder = d('customers_per_feeder');
