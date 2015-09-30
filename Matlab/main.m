@@ -10,11 +10,10 @@ function main
     d('network') = 'Landgate';
     
     %PV Settings
-    d('pv_penetration') = 0.90; %Percentage
+    d('pv_penetration') = 0; %Percentage
 
     %% Obtain settings
     setup();
-    assign_pv();    
     %% ********************************************************************************************************
     %                                       Initialize OpenDSS
     %*********************************************************************************************************
@@ -40,15 +39,24 @@ function main
     DSSText.Command = ['Set Mode=daily stepsize=1m number=1'];
 
     %% Setup the Network
-    net_function = str2func(d('network'));               
-    net_function('init');
-    assign_house_profiles();
+    %net_function = str2func(d('network'));               
+    %net_function('init');
+    %assign_house_profiles();
+    %assign_pv();
+    net_name = feval(d('network'));                                             %Assign which class to instantiate
+    net_class = net_name;                                                       %Instantiate the class
+    net_class.init;                                                             %Run the init function
     
+    profiles = assign_profiles;
+    profiles.house;
+    profiles.pv;
+   
     %% Run the Simulation
     for i = 1:1440
         DSSSolution.Solve;
     end
     
     %% Post-Simulation
-    net_function('export_monitors');
+    %net_function('export_monitors');
+    net_class.export_monitors
 end
