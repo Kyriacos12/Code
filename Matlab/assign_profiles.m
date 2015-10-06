@@ -1,7 +1,7 @@
 classdef assign_profiles
     properties
-       DSSText
-       customers_per_feeder
+        DSSText
+        customers_per_feeder
     end
     methods
         function obj = assign_profiles
@@ -10,12 +10,19 @@ classdef assign_profiles
         function house(obj)
             global d;
             DSSText = d('DSSText');
+            DSSObj = d('DSSObj');
+            DSSCircuit = DSSObj.ActiveCircuit;
             customers_per_feeder = d('customers_per_feeder');
             house = 0;
             bus = obj.extract_bus_info();
             px = [1 2 3 4 5];
-            p = [0.3 0.35 0.15 0.13 0.07];
-            DSSText.command = sprintf('set datapath=%s\\Input\\Profiles\\House\\', d('mydir'));
+            p = [0.3 0.35 0.15 0.13 0.07];      
+            %Import the house profiles
+            house_profiles = matfile([d('mydir'), '\Input\Profiles\House_profiles.mat']);
+            temp_house = house_profiles.house(d('month'),d('t_day'),:,:,:);
+            %Power Factor
+            pf = 0.97;
+            reactive_power_mult = tan(acos(pf));
             
             for i = 1:d('no_feeders')
                 for y = 1:customers_per_feeder(i)
@@ -24,41 +31,88 @@ classdef assign_profiles
                     loadshape = randi(500);
                     occupants = randsample(px,1,true,p);
                     
-                    DSSText.Command = sprintf('new loadshape.Houseload%u npts=1440 minterval=1.0 csvfile=House%u_%u_%u_%u.txt',...
-                        house, d('month'), d('t_day'), occupants, loadshape);
-                    DSSText.Command = sprintf('new load.House%u %s Phases=1 kV=0.23 kW=10 PF=0.97 Daily=Houseload%u',...
-                        house, bus{i,y}, house);
+                    temp_array = squeeze(temp_house(1,1,occupants,loadshape,:));
+                    DSSCircuit.Loadshapes.New(sprintf('Houseload%u', house));
+                    DSSCircuit.Loadshapes.name=sprintf('Houseload%u', house);
+                    DSSCircuit.Loadshapes.npts=1440;
+                    DSSCircuit.Loadshapes.MinInterval=1;
+                    DSSCircuit.Loadshapes.UseActual=1;
+                    feature('COM_SafeArraySingleDim',1);
+                    DSSCircuit.Loadshapes.Pmult=temp_array;
+                    DSSCircuit.Loadshapes.Qmult=(temp_array*reactive_power_mult);
+                    feature('COM_SafeArraySingleDim',0);              
+                                                          
+                    DSSText.Command = sprintf('new load.House%u %s Phases=1 kV=0.23 kW=1 PF=%u Daily=Houseload%u',...
+                        house, bus{i,y},pf, house);
                     
                 end
             end
+            clear temp_house;
         end
+        
         function pv(obj)
             global d;
             DSSText = d('DSSText');
+            DSSObj = d('DSSObj');
+            DSSCircuit = DSSObj.ActiveCircuit;
             customers_per_feeder = d('customers_per_feeder');
             for i = 1:d('no_feeders')
                 pv_per_feeder(i) = obj.penetration_per_feeder(customers_per_feeder(i));
             end
             bus = obj.extract_bus_info;
-            DSSText.command = sprintf('set datapath=%s\\Input\\Profiles\\PV\\Iterations\\', d('mydir'));
             iteration = randi(100);
+            iteration = 2; %CHANGE THIS LATER, FOR DEBUGGING REASONS
             house = 0;
+            
+            pv_profiles = matfile([d('mydir'), '\Input\Profiles\PV_profiles.mat']);
+            temp_pv = pv_profiles.PV(d('month'), :, :, :, :);
             
             for i = 1:d('no_feeders')
                 tempA = bus(i,1:customers_per_feeder(i));
                 idx = randperm(length(tempA));
                 bus(i,1:customers_per_feeder(i)) = tempA(idx);
-                for y = 1:customers_per_feeder(i)
+                
+                for y = 1:pv_per_feeder(i)
                     house = house + 1;
                     pvsize = randi(4);
                     pvefficiency = randi(2);
-                    DSSText.Command = sprintf('new loadshape.PVload%u npts=1440 minterval=1.0 csvfile=PViter_%u_%u_%u_%u.txt',...
-                        house, d('month'), iteration, pvsize, pvefficiency);
-                    DSSText.Command = sprintf('new generator.PV%u %s Phases=1 kV=0.23 kW=10 PF=1 Daily=PVload%u',...
+                    
+                    temp_array = squeeze(temp_pv(1,iteration,pvsize,pvefficiency,:));
+                    DSSCircuit.Loadshapes.New(sprintf('PVload%u', house));
+                    DSSCircuit.Loadshapes.name=sprintf('PVload%u', house);
+                    DSSCircuit.Loadshapes.npts=1440;
+                    DSSCircuit.Loadshapes.MinInterval=1;
+                    DSSCircuit.Loadshapes.UseActual=0;
+                    feature('COM_SafeArraySingleDim',1);
+                    DSSCircuit.Loadshapes.Pmult=temp_array;
+                    feature('COM_SafeArraySingleDim',0);
+                    
+                    DSSText.Command = sprintf('new generator.PV%u %s Phases=1 kV=0.23 kW =1 PF=1 Daily=PVload%u',...
                         house, bus{i,y}, house);
+                    obj.storage(house,bus{i,y});
                 end
             end
+            clear temp_pv;
         end
+        
+        function storage(obj, house, bus)
+            
+            global d;
+            DSSText = d('DSSText');
+            DSSObj = d('DSSObj');
+            DSSCircuit = DSSObj.ActiveCircuit;
+            
+            DSSText.Command = sprintf('new storage.battery%u phases=1 %s kV=0.23 kWrated=3 kWhrated=7 %%stored=0 State=Discharging',...
+                house, bus);
+            
+            %kWrated = charging rate
+            %kW = discharging rate
+            
+
+        
+        end
+            
+        
         function [number] = penetration_per_feeder(obj,customers)
             global d;
             import assign_house_profiles.*
@@ -78,6 +132,7 @@ classdef assign_profiles
             end
             
         end
+        
         function [buses] = extract_bus_info(obj)
             global d;
             
@@ -102,4 +157,3 @@ classdef assign_profiles
     end
 end
 
-    

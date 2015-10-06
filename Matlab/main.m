@@ -1,4 +1,4 @@
-function main
+
     tic; clear; clc; close all
     global d;
     d = containers.Map;
@@ -6,11 +6,11 @@ function main
     %% Network Settings
     %General Settings
     d('t_day') = 1;
-    d('month') = 1;
+    d('month') = 6;
     d('network') = 'Landgate';
     
     %PV Settings
-    d('pv_penetration') = 0; %Percentage
+    d('pv_penetration') = 1; %Percentage
 
     %% Obtain settings
     setup();
@@ -52,11 +52,31 @@ function main
     profiles.pv;
    
     %% Run the Simulation
+    DSSCircuit.SetActiveElement('storage.battery1');
     for i = 1:1440
         DSSSolution.Solve;
+        
+        
+        if i == 500
+            for j = 1:351
+                chargerate = sprintf('Storage.battery1.kWrated=%u', i-500);
+                DSSCircuit.CktElements(sprintf('storage.battery%u',j)).Properties('State').Val = 'CHARGING';
+                DSSCircuit.CktElements(sprintf('storage.battery%u',j)).Properties('kWrated').Val = '2';
+            end
+        end
+        
+        
+        DSSCircuit.SetActiveElement('transformer.TR1');
+        whatever = DSSCircuit.ActiveElement.Powers;
+        whatever2(i,1) = whatever(1)+whatever(3)+whatever(5);
+        DSSCircuit.SetActiveElement('generator.pv1');
+        whatever = DSSCircuit.ActiveElement.Powers;
+        whatever2(i,2) = whatever(1);%+whatever(3)+whatever(5);
+        %whatever2(i,2) = whatever(2)+whatever(4)+whatever(6);
     end
-    
+    plot(whatever2);
     %% Post-Simulation
     %net_function('export_monitors');
     net_class.export_monitors
-end
+    toc;
+    
