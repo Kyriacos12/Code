@@ -61,8 +61,9 @@ classdef assign_profiles
             end
             bus = obj.extract_bus_info;
             iteration = randi(100);
-            iteration = 2; %CHANGE THIS LATER, FOR DEBUGGING REASONS
+            %iteration = 2; %CHANGE THIS LATER, FOR DEBUGGING REASONS
             house = 0;
+            pv_data = zeros(d('no_customers'),3);
             
             pv_profiles = matfile([d('mydir'), '\Input\Profiles\PV_profiles.mat']);
             temp_pv = pv_profiles.PV(d('month'), :, :, :, :);
@@ -77,6 +78,10 @@ classdef assign_profiles
                     pvsize = randi(4);
                     pvefficiency = randi(2);
                     
+                    pv_data(house,1) = iteration;
+                    pv_data(house,2) = pvsize;
+                    pv_data(house,3) = pvefficiency;
+                    
                     temp_array = squeeze(temp_pv(1,iteration,pvsize,pvefficiency,:));
                     DSSCircuit.Loadshapes.New(sprintf('PVload%u', house));
                     DSSCircuit.Loadshapes.name=sprintf('PVload%u', house);
@@ -87,12 +92,24 @@ classdef assign_profiles
                     DSSCircuit.Loadshapes.Pmult=temp_array;
                     feature('COM_SafeArraySingleDim',0);
                     
+                    
+                    DSSCircuit.Loadshapes.New(sprintf('PVStore%u', house));
+                    DSSCircuit.Loadshapes.name=sprintf('PVStore%u', house);
+                    DSSCircuit.Loadshapes.npts=1440;
+                    DSSCircuit.Loadshapes.MinInterval=1;
+                    DSSCircuit.Loadshapes.UseActual=0;
+                    feature('COM_SafeArraySingleDim',1);
+                    DSSCircuit.Loadshapes.Pmult=temp_array*(-1);
+                    feature('COM_SafeArraySingleDim',0);
+                    
                     DSSText.Command = sprintf('new generator.PV%u %s Phases=1 kV=0.23 kW =1 PF=1 Daily=PVload%u',...
                         house, bus{i,y}, house);
                     obj.storage(house,bus{i,y});
                 end
             end
             clear temp_pv;
+            d('pv_data') = pv_data;
+            d('pv_max') = house;
         end
         
         function storage(obj, house, bus)
@@ -102,8 +119,10 @@ classdef assign_profiles
             DSSObj = d('DSSObj');
             DSSCircuit = DSSObj.ActiveCircuit;
             
-            DSSText.Command = sprintf('new storage.battery%u phases=1 %s kV=0.23 kWrated=3 kWhrated=7 %%stored=0 State=Discharging',...
-                house, bus);
+            DSSText.Command = sprintf('new storage.battery%u phases=1 %s kV=0.23 kW=1 kWrated=1 kWhrated=7 %%Charge=1 %%stored=0 dispmode=follow daily=PVStore%u',...
+                house, bus, house);
+            %DSSText.Command = sprintf('new storage.battery%u phases=1 %s kV=0.23 kWrated=3 kWhrated=7 %%stored=100 State=Discharging dischargetrigger=0.5 daily=PVload1',...
+               % house, bus);
             
             %kWrated = charging rate
             %kW = discharging rate

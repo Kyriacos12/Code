@@ -6,11 +6,11 @@
     %% Network Settings
     %General Settings
     d('t_day') = 1;
-    d('month') = 6;
+    d('month') = 1;
     d('network') = 'Landgate';
     
     %PV Settings
-    d('pv_penetration') = 1; %Percentage
+    d('pv_penetration') = 0.5; %Percentage
 
     %% Obtain settings
     setup();
@@ -50,31 +50,46 @@
     profiles = assign_profiles;
     profiles.house;
     profiles.pv;
+    store = manage_storage;
    
     %% Run the Simulation
     DSSCircuit.SetActiveElement('storage.battery1');
     for i = 1:1440
+        store.iteration_management(i);
         DSSSolution.Solve;
-        
-        
-        if i == 500
-            for j = 1:351
-                chargerate = sprintf('Storage.battery1.kWrated=%u', i-500);
-                DSSCircuit.CktElements(sprintf('storage.battery%u',j)).Properties('State').Val = 'CHARGING';
-                DSSCircuit.CktElements(sprintf('storage.battery%u',j)).Properties('kWrated').Val = '2';
-            end
-        end
-        
+                
+%         if i == 500
+%             for j = 1:351
+%                 chargerate = sprintf('Storage.battery1.kWrated=%u', i-500);
+%                 DSSCircuit.CktElements(sprintf('storage.battery%u',j)).Properties('State').Val = 'CHARGING';
+%                 DSSCircuit.CktElements(sprintf('storage.battery%u',j)).Properties('kWrated').Val = '2';
+%             end
+%         end
         
         DSSCircuit.SetActiveElement('transformer.TR1');
+        lele = DSSCircuit.ActiveElement.Powers;
+        lele2(i)= lele(1)+lele(3)+lele(5);
+        
+        DSSCircuit.SetActiveElement('storage.battery1');
         whatever = DSSCircuit.ActiveElement.Powers;
-        whatever2(i,1) = whatever(1)+whatever(3)+whatever(5);
-        DSSCircuit.SetActiveElement('generator.pv1');
+        whatever2(i,1) = whatever(1);%+whatever(3)+whatever(5);
+        DSSCircuit.SetActiveElement('storage.battery2');
         whatever = DSSCircuit.ActiveElement.Powers;
         whatever2(i,2) = whatever(1);%+whatever(3)+whatever(5);
-        %whatever2(i,2) = whatever(2)+whatever(4)+whatever(6);
+        DSSCircuit.SetActiveElement('storage.battery3');
+        whatever = DSSCircuit.ActiveElement.Powers;
+        whatever2(i,3) = whatever(1);%+whatever(3)+whatever(5);
+        DSSCircuit.SetActiveElement('storage.battery4');
+        whatever = DSSCircuit.ActiveElement.Powers;
+        whatever2(i,4) = whatever(1);%+whatever(3)+whatever(5);
+        
+%         DSSCircuit.SetActiveElement('generator.pv1');
+%         whatever = DSSCircuit.ActiveElement.Powers;
+%         whatever2(i,2) = whatever(1);%+whatever(3)+whatever(5);
+%         %whatever2(i,2) = whatever(2)+whatever(4)+whatever(6);
     end
     plot(whatever2);
+    %plot(lele2);
     %% Post-Simulation
     %net_function('export_monitors');
     net_class.export_monitors
