@@ -1,10 +1,21 @@
 classdef assign_profiles
     properties
-        DSSText
-        customers_per_feeder
+        bus;
+        customers_per_feeder;
+        pv_data;
     end
     methods
         function obj = assign_profiles
+            global d;
+            obj.customers_per_feeder = d('customers_per_feeder');
+            buss = obj.extract_bus_info;
+            for i = 1:d('no_feeders');
+                tempA = buss(i,1:obj.customers_per_feeder(i));
+                idx = randperm(length(tempA));
+                tempB(i,1:obj.customers_per_feeder(i))= tempA(idx);
+                obj.bus = tempB;
+            end
+            obj.pv_data = zeros(d('no_customers'),4);
         end
         
         function house(obj)
@@ -12,11 +23,13 @@ classdef assign_profiles
             DSSText = d('DSSText');
             DSSObj = d('DSSObj');
             DSSCircuit = DSSObj.ActiveCircuit;
-            customers_per_feeder = d('customers_per_feeder');
+            
             house = 0;
-            bus = obj.extract_bus_info();
+            %bus = obj.extract_bus_info();
             px = [1 2 3 4 5];
             p = [0.3 0.35 0.15 0.13 0.07];      
+            house_data = zeros(d('no_customers'),2);
+            
             %Import the house profiles
             house_profiles = matfile([d('mydir'), '\Input\Profiles\House_profiles.mat']);
             temp_house = house_profiles.house(d('month'),d('t_day'),:,:,:);
@@ -24,12 +37,16 @@ classdef assign_profiles
             pf = 0.97;
             reactive_power_mult = tan(acos(pf));
             
+            
             for i = 1:d('no_feeders')
-                for y = 1:customers_per_feeder(i)
+                for y = 1:obj.customers_per_feeder(i)
                     
                     house = house + 1;
                     loadshape = randi(500);
                     occupants = randsample(px,1,true,p);
+                    
+                    house_data(house,1) = occupants;
+                    house_data(house,2) = loadshape;
                     
                     temp_array = squeeze(temp_house(1,1,occupants,loadshape,:));
                     DSSCircuit.Loadshapes.New(sprintf('Houseload%u', house));
@@ -43,11 +60,12 @@ classdef assign_profiles
                     feature('COM_SafeArraySingleDim',0);              
                                                           
                     DSSText.Command = sprintf('new load.House%u %s Phases=1 kV=0.23 kW=1 PF=%u Daily=Houseload%u',...
-                        house, bus{i,y},pf, house);
+                        house, obj.bus{i,y},pf, house);
                     
                 end
             end
             clear temp_house;
+            d('house_data') = house_data;
         end
         
         function pv(obj)
@@ -55,32 +73,27 @@ classdef assign_profiles
             DSSText = d('DSSText');
             DSSObj = d('DSSObj');
             DSSCircuit = DSSObj.ActiveCircuit;
-            customers_per_feeder = d('customers_per_feeder');
             for i = 1:d('no_feeders')
-                pv_per_feeder(i) = obj.penetration_per_feeder(customers_per_feeder(i));
+                pv_per_feeder(i) = obj.penetration_per_feeder(obj.customers_per_feeder(i));
             end
-            bus = obj.extract_bus_info;
+
             iteration = randi(100);
             %iteration = 2; %CHANGE THIS LATER, FOR DEBUGGING REASONS
-            house = 0;
-            pv_data = zeros(d('no_customers'),3);
+            house = 0;          
             
             pv_profiles = matfile([d('mydir'), '\Input\Profiles\PV_profiles.mat']);
             temp_pv = pv_profiles.PV(d('month'), :, :, :, :);
             
             for i = 1:d('no_feeders')
-                tempA = bus(i,1:customers_per_feeder(i));
-                idx = randperm(length(tempA));
-                bus(i,1:customers_per_feeder(i)) = tempA(idx);
                 
                 for y = 1:pv_per_feeder(i)
                     house = house + 1;
                     pvsize = randi(4);
                     pvefficiency = randi(2);
                     
-                    pv_data(house,1) = iteration;
-                    pv_data(house,2) = pvsize;
-                    pv_data(house,3) = pvefficiency;
+                    obj.pv_data(house,1) = iteration;
+                    obj.pv_data(house,2) = pvsize;
+                    obj.pv_data(house,3) = pvefficiency;
                     
                     temp_array = squeeze(temp_pv(1,iteration,pvsize,pvefficiency,:));
                     DSSCircuit.Loadshapes.New(sprintf('PVload%u', house));
@@ -103,13 +116,18 @@ classdef assign_profiles
                     feature('COM_SafeArraySingleDim',0);
                     
                     DSSText.Command = sprintf('new generator.PV%u %s Phases=1 kV=0.23 kW =1 PF=1 Daily=PVload%u',...
-                        house, bus{i,y}, house);
-                    obj.storage(house,bus{i,y});
+                        house, obj.bus{i,y}, house);
+                    
+                    if 1==1 %Storage Call
+                        obj.storage(house,obj.bus{i,y});
+                        obj.pv_data(house,4) = 1;
+                    end
                 end
+                house = sum(obj.customers_per_feeder(1:i));
             end
             clear temp_pv;
-            d('pv_data') = pv_data;
-            d('pv_max') = house;
+            d('pv_data') = obj.pv_data;
+            
         end
         
         function storage(obj, house, bus)
@@ -117,10 +135,12 @@ classdef assign_profiles
             global d;
             DSSText = d('DSSText');
             DSSObj = d('DSSObj');
-            DSSCircuit = DSSObj.ActiveCircuit;
             
             DSSText.Command = sprintf('new storage.battery%u phases=1 %s kV=0.23 kW=1 kWrated=1 kWhrated=7 %%Charge=1 %%stored=0 dispmode=follow daily=PVStore%u',...
                 house, bus, house);
+            
+            
+                        
             %DSSText.Command = sprintf('new storage.battery%u phases=1 %s kV=0.23 kWrated=3 kWhrated=7 %%stored=100 State=Discharging dischargetrigger=0.5 daily=PVload1',...
                % house, bus);
             

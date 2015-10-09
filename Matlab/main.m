@@ -1,4 +1,11 @@
+%% What to add next:
+% 1) Need to add an identifier to which house the PV is connected (need
+% this to change the loadshape of the storage to 'night' mode.
 
+% 2) see what I can do about optimisation based on tarrifs. 
+
+
+%% Start of the Software
     tic; clear; clc; close all
     global d;
     d = containers.Map;
@@ -6,11 +13,14 @@
     %% Network Settings
     %General Settings
     d('t_day') = 1;
-    d('month') = 1;
+    d('month') = 2;
     d('network') = 'Landgate';
     
     %PV Settings
-    d('pv_penetration') = 0.5; %Percentage
+    d('pv_penetration') = 1; %Percentage
+    sunlight(:,1) = [507;462;394;380;318;289;306;353;407;462;460;506];
+    sunlight(:,2)=[973;1028;1086;1202;1256;1292;1286;1237;1165;1090;970;944];
+    d('sunlight') = sunlight;
 
     %% Obtain settings
     setup();
@@ -56,15 +66,20 @@
     DSSCircuit.SetActiveElement('storage.battery1');
     for i = 1:1440
         store.iteration_management(i);
+        
         DSSSolution.Solve;
                 
-%         if i == 500
-%             for j = 1:351
-%                 chargerate = sprintf('Storage.battery1.kWrated=%u', i-500);
-%                 DSSCircuit.CktElements(sprintf('storage.battery%u',j)).Properties('State').Val = 'CHARGING';
-%                 DSSCircuit.CktElements(sprintf('storage.battery%u',j)).Properties('kWrated').Val = '2';
-%             end
+%         if i == 1000  
+%                 DSSCircuit.CktElements('storage.battery1').Properties('daily').Val = 'Houseload1';
+%                 DSSCircuit.CktElements('storage.battery1').Properties('kWhstored').Val
+%                                 DSSCircuit.CktElements('storage.battery2').Properties('daily').Val = 'Houseload1';
+%                 DSSCircuit.CktElements('storage.battery1').Properties('kWhstored').Val
+%                                 DSSCircuit.CktElements('storage.battery3').Properties('daily').Val = 'Houseload1';
+%                 DSSCircuit.CktElements('storage.battery1').Properties('kWhstored').Val
+%                                 DSSCircuit.CktElements('storage.battery4').Properties('daily').Val = 'Houseload1';
+%                 DSSCircuit.CktElements('storage.battery1').Properties('kWhstored').Val
 %         end
+        
         
         DSSCircuit.SetActiveElement('transformer.TR1');
         lele = DSSCircuit.ActiveElement.Powers;
@@ -73,15 +88,15 @@
         DSSCircuit.SetActiveElement('storage.battery1');
         whatever = DSSCircuit.ActiveElement.Powers;
         whatever2(i,1) = whatever(1);%+whatever(3)+whatever(5);
-        DSSCircuit.SetActiveElement('storage.battery2');
-        whatever = DSSCircuit.ActiveElement.Powers;
-        whatever2(i,2) = whatever(1);%+whatever(3)+whatever(5);
-        DSSCircuit.SetActiveElement('storage.battery3');
-        whatever = DSSCircuit.ActiveElement.Powers;
-        whatever2(i,3) = whatever(1);%+whatever(3)+whatever(5);
-        DSSCircuit.SetActiveElement('storage.battery4');
-        whatever = DSSCircuit.ActiveElement.Powers;
-        whatever2(i,4) = whatever(1);%+whatever(3)+whatever(5);
+         DSSCircuit.SetActiveElement('load.house1');
+         whatever = DSSCircuit.ActiveElement.Powers;
+         whatever2(i,2) = whatever(1);%+whatever(3)+whatever(5);
+%         DSSCircuit.SetActiveElement('storage.battery3');
+%         whatever = DSSCircuit.ActiveElement.Powers;
+%         whatever2(i,3) = whatever(1);%+whatever(3)+whatever(5);
+%         DSSCircuit.SetActiveElement('storage.battery4');
+%         whatever = DSSCircuit.ActiveElement.Powers;
+%         whatever2(i,4) = whatever(1);%+whatever(3)+whatever(5);
         
 %         DSSCircuit.SetActiveElement('generator.pv1');
 %         whatever = DSSCircuit.ActiveElement.Powers;
