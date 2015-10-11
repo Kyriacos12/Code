@@ -17,7 +17,7 @@
     d('network') = 'Landgate';
     
     %PV Settings
-    d('pv_penetration') = 1; %Percentage
+    d('pv_penetration') = 0.2; %Percentage
     sunlight(:,1) = [507;462;394;380;318;289;306;353;407;462;460;506];
     sunlight(:,2)=[973;1028;1086;1202;1256;1292;1286;1237;1165;1090;970;944];
     d('sunlight') = sunlight;
@@ -85,15 +85,15 @@
         lele = DSSCircuit.ActiveElement.Powers;
         lele2(i)= lele(1)+lele(3)+lele(5);
         
-        DSSCircuit.SetActiveElement('storage.battery1');
+        DSSCircuit.SetActiveElement('storage.battery2');
         whatever = DSSCircuit.ActiveElement.Powers;
         whatever2(i,1) = whatever(1);%+whatever(3)+whatever(5);
-         DSSCircuit.SetActiveElement('load.house1');
-         whatever = DSSCircuit.ActiveElement.Powers;
-         whatever2(i,2) = whatever(1);%+whatever(3)+whatever(5);
-%         DSSCircuit.SetActiveElement('storage.battery3');
-%         whatever = DSSCircuit.ActiveElement.Powers;
-%         whatever2(i,3) = whatever(1);%+whatever(3)+whatever(5);
+        DSSCircuit.SetActiveElement('load.house2');
+        whatever = DSSCircuit.ActiveElement.Powers;
+        whatever2(i,2) = whatever(1);%+whatever(3)+whatever(5);
+        DSSCircuit.SetActiveElement('generator.PV2');
+        whatever = DSSCircuit.ActiveElement.Powers;
+        whatever2(i,3) = -whatever(1);%+whatever(3)+whatever(5);
 %         DSSCircuit.SetActiveElement('storage.battery4');
 %         whatever = DSSCircuit.ActiveElement.Powers;
 %         whatever2(i,4) = whatever(1);%+whatever(3)+whatever(5);

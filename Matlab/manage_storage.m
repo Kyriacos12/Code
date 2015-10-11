@@ -44,18 +44,25 @@ classdef manage_storage
             
             for i = 1:obj.no_customers
                 if obj.pv_data(i,4) ==1
-                    if iteration >= obj.sunlight(obj.month,1) && iteration <= obj.sunlight(obj.month,2)
-                        val = obj.pv_profiles(1, obj.pv_data(i,1),obj.pv_data(i,2),...
+                    if iteration >= obj.sunlight(obj.month,1) && iteration <= obj.sunlight(obj.month,2) %Day time
+                        val_pv = obj.pv_profiles(1, obj.pv_data(i,1),obj.pv_data(i,2),...
                             obj.pv_data(i,3),iteration);
-                        if val > 2
-                            numb = num2str(2/val);
-                            obj.DSSCircuit.CktElements(sprintf('storage.battery%u',i)).Properties('kWrated').Val=numb;
-                            obj.set_day=1;
-                        elseif obj.set_day==1
-                            obj.DSSCircuit.CktElements(sprintf('storage.battery%u',i)).Properties('kWrated').Val='1';
-                            obj.set_day = 0;
+                        val_hs = obj.house_profiles(1,1,obj.house_data(i,1),obj.house_data(i,2),iteration);
+                        if val_pv > val_hs
+                            val_store = val_pv-val_hs;
+                            if val_store > 2
+                                numb = sprintf('%u',(2/val_pv));
+                                obj.DSSCircuit.CktElements(sprintf('storage.battery%u',i)).Properties('kWrated').Val=numb;                                
+                            else
+                                numb = sprintf('%u',(val_store/val_pv));
+                                obj.DSSCircuit.CktElements(sprintf('storage.battery%u',i)).Properties('kWrated').Val=numb;
+                            end                           
+                        else
+                            obj.DSSCircuit.CktElements(sprintf('storage.battery%u',i)).Properties('kWrated').Val='0';
                         end
-                    elseif iteration >= obj.sunlight(obj.month,2)
+                        
+                        
+                    elseif iteration >= obj.sunlight(obj.month,2) %Night time
                         if obj.night == 0
                             for j = 1:obj.no_customers
                                 if obj.pv_data(j,4)==1
@@ -65,9 +72,9 @@ classdef manage_storage
                                 end
                             end
                         end
-                        val = obj.house_profiles(1,1,obj.house_data(i,1),obj.house_data(i,2),iteration);
-                        if val > 2
-                            numb = num2str(2/val);
+                        val_house = obj.house_profiles(1,1,obj.house_data(i,1),obj.house_data(i,2),iteration);
+                        if val_house > 2
+                            numb = sprintf('%u',(2/val_house));
                             obj.DSSCircuit.CktElements(sprintf('storage.battery%u',i)).Properties('kWrated').Val=numb;
                             obj.set_night = 1;
                         elseif obj.set_night==1
